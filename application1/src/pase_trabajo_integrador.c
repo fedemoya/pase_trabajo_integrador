@@ -44,17 +44,11 @@
  ** @{ */
 
 /*==================[inclusions]=============================================*/
-#include "os.h"
-#include "pase_app_example.h"
 #include "bsp.h"
+#include "mcu_pwm.h"
+#include "os.h"
 
 /*==================[macros and definitions]=================================*/
-//#define FIRST_START_DELAY_MS 350
-#define PERIOD_MS 1000
-
-#define FIRST_START_DELAY_MS_YELLOW_LED 1000
-#define FIRST_START_DELAY_MS_RED_LED 1500
-
 
 /*==================[internal data declaration]==============================*/
 
@@ -67,24 +61,16 @@
 /*==================[internal functions definition]==========================*/
 
 /*==================[external functions definition]==========================*/
-/** \brief Main function
- *
- * This is the main entry point of the software.
- *
- * \returns 0
- *
- * \remarks This function never returns. Return value is only to avoid compiler
- *          warnings or errors.
- */
+
 int main(void)
 {
-   /* Starts the operating system in the Application Mode 1 */
-   /* This example has only one Application Mode */
-   StartOS(AppMode1);
+    /* Starts the operating system in the Application Mode 1 */
+    /* This example has only one Application Mode */
+    StartOS(AppMode1);
 
-   /* StartOs shall never returns, but to avoid compiler warnings or errors
+    /* StartOs shall never returns, but to avoid compiler warnings or errors
     * 0 is returned */
-   return 0;
+    return 0;
 }
 
 /** \brief Error Hook function
@@ -118,41 +104,15 @@ TASK(InitTask)
 {
    bsp_init();
 
-   SetRelAlarm(ActivatePeriodicTask, FIRST_START_DELAY_MS_YELLOW_LED, PERIOD_MS);
-   SetRelAlarm(ActivatePeriodicTask2, FIRST_START_DELAY_MS_RED_LED, PERIOD_MS);
+   /* Configurar PWM */
+   pwmConfig( 0,    PWM_ENABLE );
 
-   TerminateTask();
-}
+   pwmConfig( PWM7, PWM_ENABLE_OUTPUT );
+   pwmConfig( PWM8, PWM_ENABLE_OUTPUT );
+   pwmConfig( PWM9, PWM_ENABLE_OUTPUT );
 
-/** \brief Periodic Task
- *
- * This task is started automatically every time that the alarm
- * ActivatePeriodicTask expires.
- *
- */
-TASK(PeriodicTask)
-{
-   bsp_ledAction(BOARD_LED_ID_1, BSP_LED_ACTION_TOGGLE);
-
-   TerminateTask();
-}
-
-/** \brief Periodic Task 2
- *
- * This task is started automatically every time that the alarm
- * ActivatePeriodicTask expires.
- *
- */
-TASK(PeriodicTask2)
-{
-   static char state = 0;
-
-   state = 1-state;
-
-   if (state)
-      bsp_ledAction(BOARD_LED_ID_RED, BSP_LED_ACTION_ON);
-   else
-      bsp_ledAction(BOARD_LED_ID_RED, BSP_LED_ACTION_OFF);
+   pwmWrite( PWM8, 30);
+   pwmWrite( PWM7, 250);
 
    TerminateTask();
 }

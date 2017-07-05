@@ -67,43 +67,44 @@ OSEK OSEK {
       SCHEDULE = NON;
    }
 
-   TASK PeriodicTask {
-      PRIORITY = 2;
-      ACTIVATION = 1;
-      STACK = 512;
-      TYPE = EXTENDED;
-      SCHEDULE = NON;
-   }
-   
-   TASK PeriodicTask2 {
-      PRIORITY = 2;
-      ACTIVATION = 1;
-      STACK = 512;
-      TYPE = EXTENDED;
-      SCHEDULE = NON;
-      RESOURCE = POSIXR;
-      EVENT = POSIXE;
-   }
-
-   ALARM ActivatePeriodicTask {
-      COUNTER = HardwareCounter;
-      ACTION = ACTIVATETASK {
-         TASK = PeriodicTask;
-      }
-   }
-   
-   ALARM ActivatePeriodicTask2 {
-      COUNTER = HardwareCounter;
-      ACTION = ACTIVATETASK {
-         TASK = PeriodicTask2;
-      }
-   }
-
-   COUNTER HardwareCounter {
-      MAXALLOWEDVALUE = 5000;
-      TICKSPERBASE = 1;
-      MINCYCLE = 1;
-      TYPE = HARDWARE;
-      COUNTER = HWCOUNTER0;
+   ISR GPIOINTHandler0 {
+      INTERRUPT = GPIO0;
+      CATEGORY = 2;
+      PRIORITY = 0;
+   };
+   ISR GPIOINTHandler1 {
+      INTERRUPT = GPIO1;
+      CATEGORY = 2;
+      PRIORITY = 0;
+   };
+   ISR GPIOINTHandler2 {
+      INTERRUPT = GPIO2;
+      CATEGORY = 2;
+      PRIORITY = 0;
+   };
+   ISR GPIOINTHandler3 {
+      INTERRUPT = GPIO3;
+      CATEGORY = 2;
+      PRIORITY = 0;
+   };
+   ISR GPIOINTHandler4 {
+      INTERRUPT = GPIO4;
+      CATEGORY = 2;
+      PRIORITY = 0;
+   };
+   ISR GPIOINTHandler5 {
+      INTERRUPT = GPIO5;
+      CATEGORY = 2;
+      PRIORITY = 0;
+   };
+   ISR GPIOINTHandler6 {
+      INTERRUPT = GPIO6;
+      CATEGORY = 2;
+      PRIORITY = 0;
+   };
+   ISR GPIOINTHandler7 {
+      INTERRUPT = GPIO7;
+      CATEGORY = 2;
+      PRIORITY = 0;
    };
 };
