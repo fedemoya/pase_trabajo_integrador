@@ -45,16 +45,41 @@
 
 /*==================[inclusions]=============================================*/
 #include "bsp.h"
+#include "board.h"
 #include "mcu_pwm.h"
 #include "os.h"
 
+#include "stdint.h"
+
 /*==================[macros and definitions]=================================*/
+
+#define MAX_INTENSITY 256
+#define INTENSITY_STEP 32
+
+typedef enum {INC, DEC} state_direction_type;
+typedef enum {RUN, PAUSED, ENDED} state_status_type;
+
+typedef struct
+{
+    uint16_t currentIntensity;
+    state_direction_type direction;
+    state_status_type status;
+    board_ledId_enum led;
+} state_type;
 
 /*==================[internal data declaration]==============================*/
 
 /*==================[internal functions declaration]=========================*/
 
 /*==================[internal data definition]===============================*/
+
+// Initial state
+state_type appState = {
+        0,
+        INC,
+        RUN,
+        BOARD_LED_ID_0_R
+};
 
 /*==================[external data definition]===============================*/
 
@@ -111,10 +136,31 @@ TASK(InitTask)
    pwmConfig( PWM8, PWM_ENABLE_OUTPUT );
    pwmConfig( PWM9, PWM_ENABLE_OUTPUT );
 
-   pwmWrite( PWM8, 30);
-   pwmWrite( PWM7, 250);
-
    TerminateTask();
+}
+
+TASK(IncDecIntensityTask)
+{
+    if(appState.status == RUN) {
+
+        if (appState.direction == INC && appState.currentIntensity < MAX_INTENSITY) {
+            appState.currentIntensity += INTENSITY_STEP;
+            pwmWrite( PWM8, appState.currentIntensity-1);
+        } else if (appState.direction == INC && appState.currentIntensity == MAX_INTENSITY) {
+            appState.direction = DEC;
+            appState.currentIntensity -= INTENSITY_STEP;
+            pwmWrite( PWM8, appState.currentIntensity);
+        } else if (appState.direction == DEC && appState.currentIntensity > 0) {
+            appState.currentIntensity -= INTENSITY_STEP;
+            pwmWrite( PWM8, appState.currentIntensity);
+        } else if (appState.direction == DEC && appState.currentIntensity == 0) {
+            appState.direction = INC;
+            appState.currentIntensity += INTENSITY_STEP;
+            pwmWrite( PWM8, appState.currentIntensity);
+        }
+    }
+
+    TerminateTask();
 }
 
 /** @} doxygen end group definition */
