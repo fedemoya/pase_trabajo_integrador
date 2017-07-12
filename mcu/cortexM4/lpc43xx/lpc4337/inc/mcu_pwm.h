@@ -39,7 +39,6 @@
 
 /*==================[inclusions]=============================================*/
 
-#include "stdbool.h"
 #include "stdint.h"
 
 /*==================[cplusplus]==============================================*/
@@ -52,49 +51,22 @@ extern "C" {
 
 /*==================[typedef]================================================*/
 
-typedef enum{
-   PWM0, PWM1, PWM2, PWM3, PWM4, PWM5, PWM6, PWM7, PWM8, PWM9, PWM10
-} pwmMap_t;
-
-typedef enum{
-   PWM_ENABLE, PWM_DISABLE,
-   PWM_ENABLE_OUTPUT, PWM_DISABLE_OUTPUT
-} pwmConfig_t;
+typedef enum
+{
+   MCU_PWM_PIN_ID_104 = 0,
+   MCU_PWM_PIN_ID_105,
+   MCU_PWM_PIN_ID_106,
+}mcu_pwm_pinId_enum;
 
 /*==================[external data declaration]==============================*/
 
 /*==================[external functions declaration]=========================*/
 
-/*
- * @Brief: Initializes the pwm peripheral.
- * @param  uint8_t pwmNumber
- * @param  uint8_t config
- * @return bool true (1) if config it is ok
- */
-bool pwmConfig( pwmMap_t pwmNumber, pwmConfig_t config);
+void mcu_pwm_init();
 
-/*
- * @brief:   Tells if the pwm is currently active, and its position
- * @param:   pwmNumber:   ID of the pwm, from 0 to 10
- * @return:   position (1 ~ PWM_TOTALNUMBER), 0 if the element was not found.
- */
-uint8_t pwmIsAttached( pwmMap_t pwmNumber );
+void mcu_pwm_enable(mcu_pwm_pinId_enum pin);
 
-/*
- * @brief:   read the value of the pwm in the pin
- * @param:   pwmNumber:   ID of the pwm, from 0 to 10
- * @return:   value of the pwm in the pin (0 ~ 255).
- *   If an error ocurred, return = EMPTY_POSITION = 255
- */
-uint8_t pwmRead( pwmMap_t pwmNumber );
-
-/*
- * @brief:   change the value of the pwm at the selected pin
- * @param:   pwmNumber:   ID of the pwm, from 0 to 10
- * @param:   value:   8bit value, from 0 to 255
- * @return:   True if the value was successfully changed, False if not.
- */
-bool pwmWrite( pwmMap_t pwmNumber, uint8_t percent );
+void mcu_pwm_write(mcu_pwm_pinId_enum pin, uint8_t percent);
 
 /*==================[cplusplus]==============================================*/
 

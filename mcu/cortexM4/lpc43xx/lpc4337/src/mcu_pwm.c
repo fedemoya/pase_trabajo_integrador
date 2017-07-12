@@ -43,11 +43,7 @@
 
 /*==================[macros and definitions]=================================*/
 
-#ifndef EMPTY_POSITION
-   #define EMPTY_POSITION 255
-#endif
-
-#define PWM_TOTALNUMBER   11   /* From PWM0 to PWM10 */
+#define PWM_TOTALNUMBER   3
 
 #define PWM_FREC          1000 /* 1Khz */
 #define PWM_PERIOD        1000 /* 1000uS = 1ms*/
@@ -56,219 +52,36 @@
 
 /*==================[internal functions declaration]=========================*/
 
-/*
- * @Brief: Initializes the pwm timers.
- * @param  none
- * @return nothing
- */
-static void pwmInitTimers(void);
-
-/*
- * @brief:   adds pwm to the the list of working pwms
- * @param:   pwmNumber:   ID of the pwm, from 0 to 10
- * @return:   true if pwm was successfully attached, false if not.
- */
-static bool pwmAttach( pwmMap_t pwmNumber );
-
-/*
- * @brief:   removes pwm (attached to pwmNumber) from the list
- * @param:   pwmNumber:   ID of the pwm, from 0 to 10
- * @return:    true if pwm was successfully detached, false if not.
- */
-static bool pwmDetach( pwmMap_t pwmNumber );
 
 /*==================[internal data definition]===============================*/
 
-/*==================[external data definition]===============================*/
-
-/* TODO Move this to bsp layer.
- *
+/*
  * Enter a pwm number, get a sct number
  * Since this module works with pwm numbers, but uses sct channels to generate
  * the signal, its necessary to connect pwm number with the SctMap_t.
  * This way the user sets "pwms", while using the sct peripheral internally*/
-static const uint8_t pwmMap[PWM_TOTALNUMBER] = {
-   /* PWM0 */  CTOUT1,  /* T_FIL1 */
-   /* PWM1 */  CTOUT12, /* T_COL2 */
-   /* PWM2 */  CTOUT10, /* T_COL0 */
-   /* PWM3 */  CTOUT0,  /* T_FIL2 */
-   /* PWM4 */  CTOUT3,  /* T_FIL3 */
-   /* PWM5 */  CTOUT13, /* T_COL1 */
-   /* PWM6 */  CTOUT7,  /* GPIO8  */
-   /* PWM7 */  CTOUT2,  /* LED1   */
-   /* PWM8 */  CTOUT5,  /* LED2   */
-   /* PWM9 */  CTOUT4,  /* LED3   */
-   /* PWM10 */ CTOUT6   /* GPIO2  */
+static const SctMap_t pwmMap[PWM_TOTALNUMBER] = {
+   /* MCU_PWM_PIN_ID_104 */  CTOUT2,
+   /* MCU_PWM_PIN_ID_105 */  CTOUT5,
+   /* MCU_PWM_PIN_ID_106 */  CTOUT4,
 };
 
-/*when the user adds a pwm with pwmAttach the list updates with the pin number of the element*/
-static uint8_t AttachedPWMList[PWM_TOTALNUMBER] = {
-/*Position | Pwm Number*/
-   /*0*/  EMPTY_POSITION,
-   /*1*/  EMPTY_POSITION,
-   /*2*/  EMPTY_POSITION,
-   /*3*/  EMPTY_POSITION,
-   /*4*/  EMPTY_POSITION,
-   /*5*/  EMPTY_POSITION,
-   /*6*/  EMPTY_POSITION,
-   /*7*/  EMPTY_POSITION,
-   /*8*/  EMPTY_POSITION,
-   /*9*/	EMPTY_POSITION,
-   /*10*/ EMPTY_POSITION,
-};
+/*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
 
-/*
- * @Brief:   Initializes the pwm timers.
- * @param   none
- * @return   nothing
- */
-static void pwmInitTimers(void){
-   Sct_Init(PWM_FREC);
-}
-
-/*
- * @brief:   adds pwm to the the list of working pwms
- * @param:   pwmNumber:   ID of the pwm, from 0 to 10
- * @return:   true if pwm was successfully attached, false if not.
- */
-static bool pwmAttach( pwmMap_t pwmNumber){
-
-   bool success = false;
-   uint8_t position = 0;
-
-   position = pwmIsAttached(pwmNumber);
-   if(position==0){
-      position = pwmIsAttached(EMPTY_POSITION); /* Searches for the first empty position */
-      if(position){ /* if position==0 => there is no room in the list for another pwm */
-         AttachedPWMList[position-1] = pwmNumber;
-         Sct_EnablePwmFor(pwmMap[pwmNumber]);
-         success = true;
-      }
-   }
-   return success;
-}
-
-/*
- * @brief:   removes pwm (attached to pwmNumber) from the list
- * @param:   pwmNumber:   ID of the pwm, from 0 to 10
- * @return:    true if pwm was successfully detached, false if not.
- */
-static bool pwmDetach( pwmMap_t pwmNumber ){
-
-   bool success = false;
-   uint8_t position = 0;
-
-   position = pwmIsAttached(pwmNumber);
-
-   if(position){
-      AttachedPWMList[position-1] = EMPTY_POSITION;
-      success = true;
-   }
-   return success;
-}
-
 /*==================[external functions definition]==========================*/
 
-/*
- * @brief:   change the value of the pwm at the selected pin
- * @param:   pwmNumber:   ID of the pwm, from 0 to 10
- * @param:   value:   8bit value, from 0 to 255
- * @return:   true if the value was successfully changed, false if not.
- */
-bool pwmWrite( pwmMap_t pwmNumber, uint8_t value ){
-
-   bool success = false;
-   uint8_t position = 0;
-
-   position = pwmIsAttached(pwmNumber);
-
-   if(position){
-      Sct_SetDutyCycle(pwmMap[pwmNumber], value);
-      success = true;
-   }
-
-   return success;
+void mcu_pwm_init() {
+    Sct_Init(PWM_FREC);
 }
 
-/*
- * @brief:   read the value of the pwm in the pin
- * @param:   pwmNumber:   ID of the pwm, from 0 to 10
- * @return:   value of the pwm in the pin (0 ~ 255).
- *   If an error ocurred, return = EMPTY_POSITION = 255
- */
-uint8_t pwmRead( pwmMap_t pwmNumber ){
-
-   uint8_t position = 0, value = 0;
-   position = pwmIsAttached(pwmNumber);
-
-   if(position){
-      value = Sct_GetDutyCycle(pwmMap[pwmNumber]);
-   }else{
-      value = EMPTY_POSITION;
-   }
-
-   return value;
+void mcu_pwm_enable(mcu_pwm_pinId_enum pin) {
+    Sct_EnablePwmFor(pwmMap[pin]);
 }
 
-
-/*
- * @Brief: Initializes the pwm peripheral.
- * @param  uint8_t pwmNumber
- * @param  uint8_t config
- * @return bool true (1) if config it is ok
- */
-bool pwmConfig( pwmMap_t pwmNumber, pwmConfig_t config){
-
-   bool ret_val = 1;
-
-   switch(config){
-
-      case PWM_ENABLE:
-         pwmInitTimers();
-      break;
-
-      case PWM_DISABLE:
-         ret_val = 0;
-      break;
-
-      case PWM_ENABLE_OUTPUT:
-         ret_val = pwmAttach( pwmNumber );
-      break;
-
-      case PWM_DISABLE_OUTPUT:
-         ret_val = pwmDetach( pwmNumber );
-      break;
-
-      default:
-         ret_val = 0;
-      break;
-   }
-
-   return ret_val;
-}
-
-/*
- * @brief:   Tells if the pwm is currently active, and its position
- * @param:   pwmNumber:   ID of the pwm, from 0 to 10
- * @return:   position (1 ~ PWM_TOTALNUMBER), 0 if the element was not found.
- */
-uint8_t pwmIsAttached( pwmMap_t pwmNumber )
-{
-   uint8_t position = 0, positionInList = 0;
-   while ( (position < PWM_TOTALNUMBER) &&
-           (pwmNumber != AttachedPWMList[position]) ) {
-      position++;
-   }
-
-   if (position < PWM_TOTALNUMBER){
-      positionInList = position + 1;
-   } else{
-      positionInList = 0;
-   }
-
-   return positionInList;
+void mcu_pwm_write(mcu_pwm_pinId_enum pin, uint8_t value ){
+    Sct_SetDutyCycle(pwmMap[pin], value);
 }
 
 /*==================[end of file]============================================*/
