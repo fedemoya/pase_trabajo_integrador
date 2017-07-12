@@ -45,16 +45,23 @@
 /*==================[inclusions]=============================================*/
 #include "board.h"
 #include "mcu.h"
-#include "stdint.h"
 
 /*==================[macros and definitions]=================================*/
 
 /*==================[internal data declaration]==============================*/
-static const mcu_gpio_pinId_enum ledMap[] =
+
+static const mcu_gpio_pinId_enum ledGPIOMap[] =
 {
    MCU_GPIO_PIN_ID_75,
    MCU_GPIO_PIN_ID_81,
    MCU_GPIO_PIN_ID_84,
+   MCU_GPIO_PIN_ID_104,
+   MCU_GPIO_PIN_ID_105,
+   MCU_GPIO_PIN_ID_106,
+};
+
+static const mcu_pwm_pinId_enum ledPWMMap[] =
+{
    MCU_GPIO_PIN_ID_104,
    MCU_GPIO_PIN_ID_105,
    MCU_GPIO_PIN_ID_106,
@@ -68,7 +75,7 @@ static const mcu_gpio_pinId_enum switchMap[] =
    MCU_GPIO_PIN_ID_49,
 };
 
-static const int8_t totalLeds = sizeof(ledMap) / sizeof(ledMap[0]);
+static const int8_t totalLeds = sizeof(ledGPIOMap) / sizeof(ledGPIOMap[0]);
 static const int8_t totalSwitches = sizeof(switchMap) / sizeof(switchMap[0]);
 
 /*==================[internal functions declaration]=========================*/
@@ -87,7 +94,7 @@ extern void board_init(void)
 
    for (i = 0 ; i < totalLeds ; i++)
    {
-      mcu_gpio_setDirection(ledMap[i], MCU_GPIO_DIRECTION_OUTPUT);
+      mcu_gpio_setDirection(ledGPIOMap[i], MCU_GPIO_DIRECTION_OUTPUT);
    }
 
    for (i = 0 ; i < totalSwitches ; i++)
@@ -98,12 +105,21 @@ extern void board_init(void)
 
 extern void board_ledToggle(board_ledId_enum id)
 {
-   mcu_gpio_toggleOut(ledMap[id]);
+   mcu_gpio_toggleOut(ledGPIOMap[id]);
 }
 
 extern void board_ledSet(board_ledId_enum id, board_ledState_enum state)
 {
-   mcu_gpio_setOut(ledMap[id], state == BOARD_LED_STATE_ON);
+   mcu_gpio_setOut(ledGPIOMap[id], state == BOARD_LED_STATE_ON);
+}
+
+extern void board_enableLedIntensity(board_ledId_enum id) {
+    mcu_pwm_init();
+    mcu_pwm_enable(ledPWMMap[id]);
+}
+
+extern void board_ledSetIntensity(board_ledId_enum id, uint8_t intensity) {
+    mcu_pwm_write(ledPWMMap[id], intensity);
 }
 
 extern board_switchState_enum board_switchGet(board_switchId_enum id)

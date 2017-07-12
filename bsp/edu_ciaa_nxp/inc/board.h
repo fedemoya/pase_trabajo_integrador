@@ -33,6 +33,9 @@
 
 #ifndef BOARD_H
 #define BOARD_H
+
+#include "stdint.h"
+
 /** \brief Header para MCU
  **
  ** archivo de inicilización del microcontrolador
@@ -92,6 +95,8 @@ extern void board_init(void);
 extern void board_ledSet(board_ledId_enum id, board_ledState_enum state);
 extern void board_ledToggle(board_ledId_enum id);
 extern board_ledState_enum board_ledGet(board_ledId_enum id);
+extern void board_enableLedIntensity(board_ledId_enum id);
+extern void board_ledSetIntensity(board_ledId_enum id, uint8_t intensity);
 extern board_switchState_enum board_switchGet(board_switchId_enum id);
 /*==================[cplusplus]==============================================*/
 #ifdef __cplusplus
