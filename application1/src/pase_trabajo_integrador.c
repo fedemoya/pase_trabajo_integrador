@@ -78,7 +78,7 @@ state_type appState = {
         0,
         INC,
         RUN,
-        BOARD_LED_ID_0_R
+        BOARD_LED_ID_1
 };
 
 /*==================[external data definition]===============================*/
@@ -129,12 +129,8 @@ TASK(InitTask)
 {
    bsp_init();
 
-   /* Configurar PWM */
-   pwmConfig( 0,    PWM_ENABLE );
-
-   pwmConfig( PWM7, PWM_ENABLE_OUTPUT );
-   pwmConfig( PWM8, PWM_ENABLE_OUTPUT );
-   pwmConfig( PWM9, PWM_ENABLE_OUTPUT );
+   board_enableLedIntensity(BOARD_LED_ID_1);
+   board_enableLedIntensity(BOARD_LED_ID_2);
 
    TerminateTask();
 }
@@ -145,18 +141,23 @@ TASK(IncDecIntensityTask)
 
         if (appState.direction == INC && appState.currentIntensity < MAX_INTENSITY) {
             appState.currentIntensity += INTENSITY_STEP;
-            pwmWrite( PWM8, appState.currentIntensity-1);
+            board_ledSetIntensity( appState.led, appState.currentIntensity-1);
         } else if (appState.direction == INC && appState.currentIntensity == MAX_INTENSITY) {
             appState.direction = DEC;
             appState.currentIntensity -= INTENSITY_STEP;
-            pwmWrite( PWM8, appState.currentIntensity);
+            board_ledSetIntensity( appState.led, appState.currentIntensity);
         } else if (appState.direction == DEC && appState.currentIntensity > 0) {
             appState.currentIntensity -= INTENSITY_STEP;
-            pwmWrite( PWM8, appState.currentIntensity);
+            board_ledSetIntensity( appState.led, appState.currentIntensity);
         } else if (appState.direction == DEC && appState.currentIntensity == 0) {
             appState.direction = INC;
             appState.currentIntensity += INTENSITY_STEP;
-            pwmWrite( PWM8, appState.currentIntensity);
+            if (appState.led == BOARD_LED_ID_1) {
+                appState.led = BOARD_LED_ID_2;
+            } else {
+                appState.led = BOARD_LED_ID_1;
+            }
+            board_ledSetIntensity( appState.led, appState.currentIntensity);
         }
     }
 
