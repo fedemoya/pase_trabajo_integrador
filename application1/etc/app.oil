@@ -57,7 +57,7 @@ OSEK OSEK {
    APPMODE = AppMode1;
 
    TASK InitTask {
-      PRIORITY = 1;
+      PRIORITY = 100;
       ACTIVATION = 1;
       AUTOSTART = TRUE {
          APPMODE = AppMode1;
@@ -75,6 +75,14 @@ OSEK OSEK {
       SCHEDULE = FULL;
    }
    
+   TASK CheckSwitchTask {
+      PRIORITY = 5;
+      ACTIVATION = 1;
+      STACK = 512;
+      TYPE = BASIC;
+      SCHEDULE = FULL;
+   }
+   
    ALARM RunIncDecIntensityTask {
       COUNTER = HardwareCounter;
       AUTOSTART = TRUE {
@@ -84,6 +92,18 @@ OSEK OSEK {
       }
       ACTION = ACTIVATETASK {
          TASK = IncDecIntensityTask;
+      }
+   }
+   
+   ALARM RunCheckSwitchTask {
+      COUNTER = HardwareCounter;
+      AUTOSTART = TRUE {
+         ALARMTIME = 0;
+         CYCLETIME = 10;
+         APPMODE = AppMode1;
+      }
+      ACTION = ACTIVATETASK {
+         TASK = CheckSwitchTask;
       }
    }
    

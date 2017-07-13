@@ -77,7 +77,7 @@ typedef struct
 state_type appState = {
         0,
         INC,
-        RUN,
+        ENDED,
         BOARD_LED_ID_1
 };
 
@@ -159,6 +159,40 @@ TASK(IncDecIntensityTask)
             }
             board_ledSetIntensity( appState.led, appState.currentIntensity);
         }
+    }
+
+    TerminateTask();
+}
+
+TASK(CheckSwitchTask)
+{
+    if (board_switchGet(BOARD_TEC_ID_1) == BOARD_TEC_PRESSED && appState.status == ENDED) {
+        appState.status = RUN;
+    } else if (board_switchGet(BOARD_TEC_ID_1) == BOARD_TEC_PRESSED) {
+        // A continuación volvemos el estado a los valores iniciales.
+        appState.status = ENDED;
+        // Nota en relación a la concurrencia:
+        // La tarea IncDecIntensityTask tiene más alta prioridad que esta.
+        // Eso implica que el planificador puede sacarle el
+        // procesador a esta tarea y dárselo a IncDecIntensityTask.
+        // Si ese cambio de contexto ocurre en las lineas previas a este comentario
+        // no hay problema porque la tarea IncDecIntensityTask no modifica la variable
+        // appSate.status.
+        // Si el cambio de contexto ocurre después de este comentario, tampoco hay problema
+        // porque la tarea IncDecIntensityTask no va a ejecutar el código que modifica las variables
+        // compartidas debido a que el status es "ENDED".
+        // Por lo tanto no necesitamos aplicar ningún mecanismo de exclusión mutua o sincronización.
+        board_ledSetIntensity(BOARD_LED_ID_1, 0);
+        board_ledSetIntensity(BOARD_LED_ID_2, 0);
+        appState.currentIntensity = 0;
+        appState.direction = INC;
+        appState.led = BOARD_LED_ID_1;
+    }
+
+    if (board_switchGet(BOARD_TEC_ID_2) == BOARD_TEC_PRESSED && appState.status == RUN) {
+        appState.status = PAUSED;
+    } else if (board_switchGet(BOARD_TEC_ID_2) == BOARD_TEC_PRESSED && appState.status == PAUSED) {
+        appState.status = RUN;
     }
 
     TerminateTask();
