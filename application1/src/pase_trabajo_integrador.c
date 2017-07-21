@@ -47,12 +47,18 @@
 #include "bsp.h"
 #include "board.h"
 #include "mcu_pwm.h"
+#include "mcu_uart.h"
 #include "os.h"
 
 #include "stdint.h"
+#include "string.h"
+
 
 /*==================[macros and definitions]=================================*/
 
+#define BAUDRATE 115200
+
+#define QUEUE_SIZE 10
 #define MAX_INTENSITY 256
 #define INTENSITY_STEP 32
 
@@ -67,7 +73,18 @@ typedef struct
     board_ledId_enum led;
 } state_type;
 
+typedef struct
+{
+    char *data;
+    size_t size;
+} message_type;
+
 /*==================[internal data declaration]==============================*/
+
+int timer = 0;
+
+size_t messageQueueIndex = 0;
+message_type messageQueue[QUEUE_SIZE];
 
 /*==================[internal functions declaration]=========================*/
 
@@ -84,6 +101,60 @@ state_type appState = {
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
+
+void log_message(char *buffer, const char *data) {
+    char ch_timer[10];
+    memset(ch_timer, '\0', sizeof(ch_timer));
+    itoa(timer, ch_timer, 10);
+    strcpy(buffer, ch_timer);
+    strcat(buffer, ": ");
+    strcat(buffer, data);
+    queue_sync_write(buffer, strlen(buffer));
+}
+
+/* \ messageQueue synchronized write
+ *
+ * This method synchronize the write operations to the queue.
+ * Also synchronize between writes and reads.
+ */
+void queue_sync_write(char *data, size_t size) {
+
+    GetResource(MessageQueueAccess);
+
+    if (messageQueueIndex < QUEUE_SIZE) {
+        messageQueue[messageQueueIndex].data = data;
+        messageQueue[messageQueueIndex].size = size;
+        messageQueueIndex++;
+    }
+
+    ReleaseResource(MessageQueueAccess);
+}
+
+/* \ messageQueue synchronized read
+ *
+ * This method synchronize the read operations to the queue.
+ * Also synchronize between writes and reads.
+ */
+message_type queue_sync_read() {
+
+    message_type message = {"", 0};
+
+    GetResource(MessageQueueAccess);
+
+    if (messageQueueIndex > 0) {
+        message = messageQueue[--messageQueueIndex];
+    }
+
+    ReleaseResource(MessageQueueAccess);
+
+    return message;
+}
+
+void send_message(message_type message) {
+    if (message.size > 0) {
+        mcu_uart_write(message.data, message.size);
+    }
+}
 
 /*==================[external functions definition]==========================*/
 
@@ -127,37 +198,74 @@ void ErrorHook(void)
  */
 TASK(InitTask)
 {
-   bsp_init();
+    // Initialize message queue.
+    int var;
+    for (var = 0; var < QUEUE_SIZE; ++var) {
+       message_type message = {"", 0};
+       messageQueue[var] = message;
+    }
 
-   board_enableLedIntensity(BOARD_LED_ID_1);
-   board_enableLedIntensity(BOARD_LED_ID_2);
+    bsp_init();
 
-   TerminateTask();
+    mcu_uart_init(BAUDRATE);
+
+    board_enableLedIntensity(BOARD_LED_ID_1);
+    board_enableLedIntensity(BOARD_LED_ID_2);
+
+    TerminateTask();
 }
 
 TASK(IncDecIntensityTask)
 {
+    char buffer[100];
+    memset(buffer, '\0', sizeof(buffer));
+
     if(appState.status == RUN) {
 
-        if (appState.direction == INC && appState.currentIntensity < MAX_INTENSITY) {
+        if (appState.direction == INC && appState.currentIntensity == 0) {
+
+            log_message(buffer, "Encendiendo Led Rojo\r\n");
+
             appState.currentIntensity += INTENSITY_STEP;
             board_ledSetIntensity( appState.led, appState.currentIntensity-1);
+
+        } else if (appState.direction == INC && appState.currentIntensity < MAX_INTENSITY) {
+
+            appState.currentIntensity += INTENSITY_STEP;
+            board_ledSetIntensity( appState.led, appState.currentIntensity-1);
+
         } else if (appState.direction == INC && appState.currentIntensity == MAX_INTENSITY) {
+
             appState.direction = DEC;
             appState.currentIntensity -= INTENSITY_STEP;
             board_ledSetIntensity( appState.led, appState.currentIntensity);
+
+            if (appState.led == BOARD_LED_ID_1) {
+                log_message(buffer, "Intensidad maxima: Led Rojo\r\n");
+            } else {
+                log_message(buffer, "Intensidad maxima: Led Amarillo\r\n");
+            }
+
         } else if (appState.direction == DEC && appState.currentIntensity > 0) {
+
             appState.currentIntensity -= INTENSITY_STEP;
             board_ledSetIntensity( appState.led, appState.currentIntensity);
+
         } else if (appState.direction == DEC && appState.currentIntensity == 0) {
+
             appState.direction = INC;
             appState.currentIntensity += INTENSITY_STEP;
+
             if (appState.led == BOARD_LED_ID_1) {
                 appState.led = BOARD_LED_ID_2;
+                log_message(buffer, "Encendiendo Led Amarillo\r\n");
             } else {
                 appState.led = BOARD_LED_ID_1;
+                log_message(buffer, "Encendiendo Led Rojo\r\n");
             }
+
             board_ledSetIntensity( appState.led, appState.currentIntensity);
+
         }
     }
 
@@ -166,8 +274,14 @@ TASK(IncDecIntensityTask)
 
 TASK(CheckSwitchTask)
 {
+    char buffer[100];
+    memset(buffer, '\0', sizeof(buffer));
+
+
     if (board_switchGet(BOARD_TEC_ID_1) == BOARD_TEC_PRESSED && appState.status == ENDED) {
         appState.status = RUN;
+
+        log_message(buffer, "Inicio secuencia\r\n");
     } else if (board_switchGet(BOARD_TEC_ID_1) == BOARD_TEC_PRESSED) {
         // A continuación volvemos el estado a los valores iniciales.
         appState.status = ENDED;
@@ -187,15 +301,34 @@ TASK(CheckSwitchTask)
         appState.currentIntensity = 0;
         appState.direction = INC;
         appState.led = BOARD_LED_ID_1;
+
+        log_message(buffer, "Secuencia finalizada\r\n");
     }
 
     if (board_switchGet(BOARD_TEC_ID_2) == BOARD_TEC_PRESSED && appState.status == RUN) {
         appState.status = PAUSED;
+
+        log_message(buffer, "Secuencia pausada\r\n");
     } else if (board_switchGet(BOARD_TEC_ID_2) == BOARD_TEC_PRESSED && appState.status == PAUSED) {
         appState.status = RUN;
+
+        log_message(buffer, "Secuencia reanudada\r\n");
     }
 
     TerminateTask();
+}
+
+TASK(LogMessagesTask) {
+
+    message_type message = queue_sync_read();
+    send_message(message);
+
+    TerminateTask();
+}
+
+ALARMCALLBACK(CallBackIncreaseTimer)
+{
+    timer++;
 }
 
 /** @} doxygen end group definition */

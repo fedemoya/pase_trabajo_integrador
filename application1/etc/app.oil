@@ -73,6 +73,7 @@ OSEK OSEK {
       STACK = 512;
       TYPE = BASIC;
       SCHEDULE = FULL;
+      RESOURCE = MessageQueueAccess;
    }
    
    TASK CheckSwitchTask {
@@ -81,6 +82,16 @@ OSEK OSEK {
       STACK = 512;
       TYPE = BASIC;
       SCHEDULE = FULL;
+      RESOURCE = MessageQueueAccess;
+   }
+   
+   TASK LogMessagesTask {
+      PRIORITY = 2;
+      ACTIVATION = 1;
+      STACK = 512;
+      TYPE = BASIC;
+      SCHEDULE = FULL;
+      RESOURCE = MessageQueueAccess;
    }
    
    ALARM RunIncDecIntensityTask {
@@ -99,12 +110,40 @@ OSEK OSEK {
       COUNTER = HardwareCounter;
       AUTOSTART = TRUE {
          ALARMTIME = 0;
-         CYCLETIME = 10;
+         CYCLETIME = 300;
          APPMODE = AppMode1;
       }
       ACTION = ACTIVATETASK {
          TASK = CheckSwitchTask;
       }
+   }
+   
+   ALARM RunLogMessagesTask {
+      COUNTER = HardwareCounter;
+      AUTOSTART = TRUE {
+         ALARMTIME = 0;
+         CYCLETIME = 100;
+         APPMODE = AppMode1;
+      }
+      ACTION = ACTIVATETASK {
+         TASK = LogMessagesTask;
+      }
+   }
+   
+   ALARM RunCallBackIncreaseTimer {
+      COUNTER = HardwareCounter;
+      AUTOSTART = TRUE {
+         ALARMTIME = 1000;
+         CYCLETIME = 1000;
+         APPMODE = AppMode1;
+      };
+      ACTION = ALARMCALLBACK {
+         ALARMCALLBACKNAME = CallBackIncreaseTimer;
+      };
+   }
+   
+   RESOURCE MessageQueueAccess {
+        RESOURCEPROPERTY = STANDARD;
    }
    
    COUNTER HardwareCounter {
