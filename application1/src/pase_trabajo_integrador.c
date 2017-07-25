@@ -217,7 +217,7 @@ TASK(InitTask)
 
 TASK(IncDecIntensityTask)
 {
-    char buffer[100];
+    static char buffer[100];
     memset(buffer, '\0', sizeof(buffer));
 
     if(appState.status == RUN) {
@@ -274,7 +274,7 @@ TASK(IncDecIntensityTask)
 
 TASK(CheckSwitchTask)
 {
-    char buffer[100];
+    static char buffer[100];
     memset(buffer, '\0', sizeof(buffer));
 
 
