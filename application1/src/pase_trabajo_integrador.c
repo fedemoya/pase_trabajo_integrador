@@ -45,6 +45,7 @@
 
 /*==================[inclusions]=============================================*/
 #include "bsp.h"
+#include "bsp_keyboard.h"
 #include "board.h"
 #include "mcu_pwm.h"
 #include "mcu_uart.h"
@@ -206,6 +207,7 @@ TASK(InitTask)
     }
 
     bsp_init();
+    bsp_keyboardInit();
 
     mcu_uart_init(BAUDRATE);
 
@@ -277,12 +279,13 @@ TASK(CheckSwitchTask)
     static char buffer[100];
     memset(buffer, '\0', sizeof(buffer));
 
+    board_switchId_enum tec = bsp_keyboardGet();
 
-    if (board_switchGet(BOARD_TEC_ID_1) == BOARD_TEC_PRESSED && appState.status == ENDED) {
+    if (tec == BOARD_TEC_ID_1 && appState.status == ENDED) {
         appState.status = RUN;
 
         log_message(buffer, "Inicio secuencia\r\n");
-    } else if (board_switchGet(BOARD_TEC_ID_1) == BOARD_TEC_PRESSED) {
+    } else if (tec == BOARD_TEC_ID_1) {
         // A continuación volvemos el estado a los valores iniciales.
         appState.status = ENDED;
         // Nota en relación a la concurrencia:
@@ -305,11 +308,11 @@ TASK(CheckSwitchTask)
         log_message(buffer, "Secuencia finalizada\r\n");
     }
 
-    if (board_switchGet(BOARD_TEC_ID_2) == BOARD_TEC_PRESSED && appState.status == RUN) {
+    if (tec == BOARD_TEC_ID_2  && appState.status == RUN) {
         appState.status = PAUSED;
 
         log_message(buffer, "Secuencia pausada\r\n");
-    } else if (board_switchGet(BOARD_TEC_ID_2) == BOARD_TEC_PRESSED && appState.status == PAUSED) {
+    } else if (tec == BOARD_TEC_ID_2 && appState.status == PAUSED) {
         appState.status = RUN;
 
         log_message(buffer, "Secuencia reanudada\r\n");
@@ -323,6 +326,11 @@ TASK(LogMessagesTask) {
     message_type message = queue_sync_read();
     send_message(message);
 
+    TerminateTask();
+}
+
+TASK(KeyboardTask) {
+    bsp_keyboard_task();
     TerminateTask();
 }
 

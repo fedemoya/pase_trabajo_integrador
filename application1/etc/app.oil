@@ -85,6 +85,14 @@ OSEK OSEK {
       RESOURCE = MessageQueueAccess;
    }
    
+   TASK KeyboardTask {
+      PRIORITY = 3;
+      ACTIVATION = 1;
+      STACK = 512;
+      TYPE = BASIC;
+      SCHEDULE = FULL;
+   }
+   
    TASK LogMessagesTask {
       PRIORITY = 2;
       ACTIVATION = 1;
@@ -110,7 +118,7 @@ OSEK OSEK {
       COUNTER = HardwareCounter;
       AUTOSTART = TRUE {
          ALARMTIME = 0;
-         CYCLETIME = 300;
+         CYCLETIME = 100;
          APPMODE = AppMode1;
       }
       ACTION = ACTIVATETASK {
@@ -127,6 +135,18 @@ OSEK OSEK {
       }
       ACTION = ACTIVATETASK {
          TASK = LogMessagesTask;
+      }
+   }
+   
+   ALARM RunKeyboardTask {
+      COUNTER = HardwareCounter;
+      AUTOSTART = TRUE {
+         ALARMTIME = 0;
+         CYCLETIME = 2;
+         APPMODE = AppMode1;
+      }
+      ACTION = ACTIVATETASK {
+         TASK = KeyboardTask;
       }
    }
    
