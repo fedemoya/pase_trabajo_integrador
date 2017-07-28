@@ -290,7 +290,6 @@ TASK(CheckSwitchTask)
 
     if (tec == BOARD_TEC_ID_1 && appState.status == ENDED) {
         appState.status = RUN;
-        board_ledToggle(BOARD_LED_ID_3);
         log_message("Inicio secuencia\r\n");
     } else if (tec == BOARD_TEC_ID_1) {
         // A continuación volvemos el estado a los valores iniciales.
@@ -312,7 +311,6 @@ TASK(CheckSwitchTask)
         appState.direction = INC;
         appState.led = BOARD_LED_ID_1;
 
-        board_ledToggle(BOARD_LED_ID_3);
         log_message("Secuencia finalizada\r\n");
     }
 
