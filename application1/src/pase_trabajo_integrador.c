@@ -84,7 +84,10 @@ typedef struct
 
 int timer = 0;
 
-size_t messageQueueIndex = 0;
+
+size_t messageQueueWriteIndex = 0;
+size_t messageQueueReadIndex = 0;
+
 message_type messageQueue[QUEUE_SIZE];
 
 /*==================[internal functions declaration]=========================*/
@@ -103,7 +106,12 @@ state_type appState = {
 
 /*==================[internal functions definition]==========================*/
 
-void log_message(char *buffer, const char *data) {
+void log_message(const char *data) {
+
+    GetResource(MessageQueueAccess);
+
+    static char buffer[100];
+    memset(buffer, '\0', sizeof(buffer));
     char ch_timer[10];
     memset(ch_timer, '\0', sizeof(ch_timer));
     itoa(timer, ch_timer, 10);
@@ -111,6 +119,8 @@ void log_message(char *buffer, const char *data) {
     strcat(buffer, ": ");
     strcat(buffer, data);
     queue_sync_write(buffer, strlen(buffer));
+
+    ReleaseResource(MessageQueueAccess);
 }
 
 /* \ messageQueue synchronized write
@@ -119,16 +129,14 @@ void log_message(char *buffer, const char *data) {
  * Also synchronize between writes and reads.
  */
 void queue_sync_write(char *data, size_t size) {
+    size_t index;
+    static char buffer[100];
 
-    GetResource(MessageQueueAccess);
-
-    if (messageQueueIndex < QUEUE_SIZE) {
-        messageQueue[messageQueueIndex].data = data;
-        messageQueue[messageQueueIndex].size = size;
-        messageQueueIndex++;
-    }
-
-    ReleaseResource(MessageQueueAccess);
+    strcpy(buffer, data);
+    index = messageQueueWriteIndex % QUEUE_SIZE;
+    messageQueue[index].data = buffer;
+    messageQueue[index].size = size;
+    messageQueueWriteIndex++;
 }
 
 /* \ messageQueue synchronized read
@@ -138,12 +146,15 @@ void queue_sync_write(char *data, size_t size) {
  */
 message_type queue_sync_read() {
 
+    size_t index;
     message_type message = {"", 0};
 
     GetResource(MessageQueueAccess);
 
-    if (messageQueueIndex > 0) {
-        message = messageQueue[--messageQueueIndex];
+    if (messageQueueReadIndex < messageQueueWriteIndex) {
+        index = messageQueueReadIndex % QUEUE_SIZE;
+        message = messageQueue[index];
+        messageQueueReadIndex++;
     }
 
     ReleaseResource(MessageQueueAccess);
@@ -202,7 +213,7 @@ TASK(InitTask)
     // Initialize message queue.
     int var;
     for (var = 0; var < QUEUE_SIZE; ++var) {
-       message_type message = {"", 0};
+       message_type message = {NULL, 0};
        messageQueue[var] = message;
     }
 
@@ -219,14 +230,12 @@ TASK(InitTask)
 
 TASK(IncDecIntensityTask)
 {
-    static char buffer[100];
-    memset(buffer, '\0', sizeof(buffer));
 
     if(appState.status == RUN) {
 
         if (appState.direction == INC && appState.currentIntensity == 0) {
 
-            log_message(buffer, "Encendiendo Led Rojo\r\n");
+            log_message("Encendiendo Led Rojo\r\n");
 
             appState.currentIntensity += INTENSITY_STEP;
             board_ledSetIntensity( appState.led, appState.currentIntensity-1);
@@ -243,9 +252,9 @@ TASK(IncDecIntensityTask)
             board_ledSetIntensity( appState.led, appState.currentIntensity);
 
             if (appState.led == BOARD_LED_ID_1) {
-                log_message(buffer, "Intensidad maxima: Led Rojo\r\n");
+                log_message("Intensidad maxima: Led Rojo\r\n");
             } else {
-                log_message(buffer, "Intensidad maxima: Led Amarillo\r\n");
+                log_message("Intensidad maxima: Led Amarillo\r\n");
             }
 
         } else if (appState.direction == DEC && appState.currentIntensity > 0) {
@@ -260,10 +269,10 @@ TASK(IncDecIntensityTask)
 
             if (appState.led == BOARD_LED_ID_1) {
                 appState.led = BOARD_LED_ID_2;
-                log_message(buffer, "Encendiendo Led Amarillo\r\n");
+                log_message("Encendiendo Led Amarillo\r\n");
             } else {
                 appState.led = BOARD_LED_ID_1;
-                log_message(buffer, "Encendiendo Led Rojo\r\n");
+                log_message("Encendiendo Led Rojo\r\n");
             }
 
             board_ledSetIntensity( appState.led, appState.currentIntensity);
@@ -276,15 +285,13 @@ TASK(IncDecIntensityTask)
 
 TASK(CheckSwitchTask)
 {
-    static char buffer[100];
-    memset(buffer, '\0', sizeof(buffer));
 
     board_switchId_enum tec = bsp_keyboardGet();
 
     if (tec == BOARD_TEC_ID_1 && appState.status == ENDED) {
         appState.status = RUN;
-
-        log_message(buffer, "Inicio secuencia\r\n");
+        board_ledToggle(BOARD_LED_ID_3);
+        log_message("Inicio secuencia\r\n");
     } else if (tec == BOARD_TEC_ID_1) {
         // A continuación volvemos el estado a los valores iniciales.
         appState.status = ENDED;
@@ -305,17 +312,18 @@ TASK(CheckSwitchTask)
         appState.direction = INC;
         appState.led = BOARD_LED_ID_1;
 
-        log_message(buffer, "Secuencia finalizada\r\n");
+        board_ledToggle(BOARD_LED_ID_3);
+        log_message("Secuencia finalizada\r\n");
     }
 
     if (tec == BOARD_TEC_ID_2  && appState.status == RUN) {
         appState.status = PAUSED;
 
-        log_message(buffer, "Secuencia pausada\r\n");
+        log_message("Secuencia pausada\r\n");
     } else if (tec == BOARD_TEC_ID_2 && appState.status == PAUSED) {
         appState.status = RUN;
 
-        log_message(buffer, "Secuencia reanudada\r\n");
+        log_message("Secuencia reanudada\r\n");
     }
 
     TerminateTask();
