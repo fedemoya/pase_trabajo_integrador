@@ -130,7 +130,7 @@ OSEK OSEK {
       COUNTER = HardwareCounter;
       AUTOSTART = TRUE {
          ALARMTIME = 0;
-         CYCLETIME = 100;
+         CYCLETIME = 500;
          APPMODE = AppMode1;
       }
       ACTION = ACTIVATETASK {
@@ -167,7 +167,7 @@ OSEK OSEK {
    }
    
    COUNTER HardwareCounter {
-      MAXALLOWEDVALUE = 1000;
+      MAXALLOWEDVALUE = 10000;
       TICKSPERBASE = 1;
       MINCYCLE = 1;
       TYPE = HARDWARE;

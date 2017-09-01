@@ -76,7 +76,7 @@ typedef struct
 
 typedef struct
 {
-    char *data;
+    char data[100];
     size_t size;
 } message_type;
 
@@ -130,11 +130,8 @@ void log_message(const char *data) {
  */
 void queue_sync_write(char *data, size_t size) {
     size_t index;
-    static char buffer[100];
-
-    strcpy(buffer, data);
     index = messageQueueWriteIndex % QUEUE_SIZE;
-    messageQueue[index].data = buffer;
+    strcpy(messageQueue[index].data, data);
     messageQueue[index].size = size;
     messageQueueWriteIndex++;
 }
@@ -163,9 +160,7 @@ message_type queue_sync_read() {
 }
 
 void send_message(message_type message) {
-    if (message.size > 0) {
         mcu_uart_write(message.data, message.size);
-    }
 }
 
 /*==================[external functions definition]==========================*/
@@ -330,7 +325,9 @@ TASK(CheckSwitchTask)
 TASK(LogMessagesTask) {
 
     message_type message = queue_sync_read();
-    send_message(message);
+    if (message.size > 0) {
+        send_message(message);
+    }
 
     TerminateTask();
 }
